@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<robot name="fifi" version="1.1">
+  <link name="arm2">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <visual>
+      <origin xyz="6.039613253960852e-17 0.055 0.0" rpy="1.5707963267948966 0.0 0.0"/>
+      <geometry>
+        <cylinder radius="0.005" length="0.11"/>
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.01500000000000006 0.11 0.0" rpy="0.0 -1.5707963267948966 0.0"/>
+      <geometry>
+        <cylinder radius="0.005" length="0.030000000000000002"/>
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.03000000000000006 0.135 0.0" rpy="1.5707963267948966 0.0 0.0"/>
+      <geometry>
+        <cylinder radius="0.005" length="0.05"/>
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.01500000000000006 0.16 0.0" rpy="-0.0 1.5707963267948966 0.0"/>
+      <geometry>
+        <cylinder radius="0.005" length="0.030000000000000002"/>
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="6.039613253960852e-17 0.185 0.0" rpy="1.5707963267948966 0.0 0.0"/>
+      <geometry>
+        <cylinder radius="0.005" length="0.05000000000000002"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="Robot_base">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <visual>
+      <origin xyz="-0.015000000000000005 -2.842170943040401e-17 2.842170943040401e-17" rpy="-0.0 1.5707963267948966 0.0"/>
+      <geometry>
+        <cylinder radius="0.005" length="0.030000000000000016"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="arm1">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <visual>
+      <origin xyz="-1.121347047238762e-15 0.29999999999999993 -9.464439400524164e-18" rpy="-1.5707963267948968 -3.774758283725532e-15 3.743424299321182e-15"/>
+      <geometry>
+        <cylinder radius="0.005" length="0.3999999999999999"/>
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.01500000000000037 0.09999999999999995 3.37444517545458e-17" rpy="-4.163336342344337e-15 1.5707963267948966 0.0"/>
+      <geometry>
+        <cylinder radius="0.005" length="0.03"/>
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.030000000000000283 0.07499999999999989 2.6640023480624643e-17" rpy="-1.5707963267948963 -3.552713678800501e-15 3.5388358909926865e-15"/>
+      <geometry>
+        <cylinder radius="0.005" length="0.049999999999999996"/>
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.015000000000000194 0.04999999999999995 2.7875771817131247e-17" rpy="3.932039878880764e-15 -1.5707963267948966 0.0"/>
+      <geometry>
+        <cylinder radius="0.005" length="0.03"/>
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-1.0731880107340145e-16 0.025 2.91115201536379e-17" rpy="-1.5707963267948963 -3.3306690738754696e-15 3.4894160395561038e-15"/>
+      <geometry>
+        <cylinder radius="0.005" length="0.05"/>
+      </geometry>
+    </visual>
+  </link>
+  <joint name="Jointarm2arm1" type="revolute">
+    <origin xyz="-1.858069254012662e-15 0.49999999999999994 -5.684341886080802e-17" rpy="0.0 0.0 0.0"/>
+    <parent link="arm1"/>
+    <child link="arm2"/>
+  </joint>
+  <joint name="Jointarm1Robot_base" type="revolute">
+    <origin xyz="-0.029999999999999992 0.0 5.684341886080802e-17" rpy="0.0 0.0 0.0"/>
+    <parent link="Robot_base"/>
+    <child link="arm1"/>
+  </joint>
+</robot>

@@ -9,11 +9,12 @@ from os import path
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeWire
 #data=read_step_file_asembly('D:\modeling\skelet.STEP')
 
-root_path='D:\modeling\Double_pendulum'
+#root_path='D:\modeling\Double_pendulum'
 
-data=read_step_file_asembly('D:\modeling\Double_pendulum\Body_CAD\Skelet\skelet_DP.STEP')
+#data=read_step_file_asembly('D:\modeling\Double_pendulum\Body_CAD\Skelet\skelet_DP.STEP')
 
-data=read_step_file_asembly('D:\modeling\Double_pendulum\Body_CAD\Whole_Body_DP.STEP')
+#data=read_step_file_asembly('D:\modeling\Double_pendulum\Body_CAD\Whole_Body_DP.STEP')
+data=read_step_file_asembly('/home/rok/Documents/Python-projects/urdf_creator/test/skelet_DP.STEP')
 
 for u in data:
     ee,ww,h,hir_trans=data[u]
@@ -27,7 +28,7 @@ from scipy.spatial.transform import Rotation as R
 
 
 from urdf_parser_py import urdf
-from urdf_parser_py.urdf import URDF, Link, Visual, Cylinder, Pose, Joint
+from urdf_parser_py.urdf import URDF, Link, Visual, Cylinder, Pose, Joint, Inertial, Inertia, JointLimit, Collision
 robot=URDF()
 robot.name='fifi'
 
@@ -159,12 +160,19 @@ for u in data:
             Link1.add_aggregate('visual', Vis1)
             Link1.get_aggregate_list('visual')
 
-
+        link_colision=Collision(geometry=Cylinder(radius=0.005, length=L),origin=Pos1)  
+        
+        Link1.add_aggregate('collision', link_colision)
+        Link1.get_aggregate_list('collision') 
+        link_inertia=Inertia(ixx=1,ixy=0,ixz=0,iyy=1,iyz=0,izz=1)
+        link_mass=1
+        Inert=Inertial(mass=link_mass,inertia=link_inertia,origin=Pos1)    
+        Link1.inertial=Inert
         robot.add_link(Link1)
 
 
 i=0
-
+## CREATE JOINTS
 
 for u in data:
     segment_name, segment_color, segment_hierarchy,segment_trans = data[u]
@@ -219,10 +227,10 @@ for u in data:
                 Vis1 = Visual(geometry=Cylinder(radius=0.05, length=0.2), material=None, origin=Pos1, name=None)
 
 
-
+                joint_limit=JointLimit(effort=1000, lower=0.0, upper=0.548, velocity=0.5)
                 Joint1= Joint( name='Joint'+str(segment_hierarchy[-1])+str(joint_base_data[j][1][-1]), parent=joint_base_data[j][1][-1], child=segment_hierarchy[-1], joint_type='revolute',
-                         axis=None, origin=Pos1,
-                         limit=None, dynamics=None, safety_controller=None,
+                         axis=[0, 0, 1], origin=Pos1,
+                         limit=joint_limit, dynamics=None, safety_controller=None,
                          calibration=None, mimic=None)
                 i=i+1
                 robot.add_joint(Joint1)
