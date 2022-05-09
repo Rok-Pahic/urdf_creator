@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  occ1:
+    image: occ:latest
+    volumes:
+      - /home/rok/Documents/py-occ-test/rospackages:/ros_ws/src
+      - /home/rok/Documents/py-occ-test/scripts:/scripts_occ
+    #command: stdbuf -o L /bin/bash
+    network_mode: "host"
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
