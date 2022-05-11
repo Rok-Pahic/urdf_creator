@@ -18,22 +18,65 @@ RUN set -ex; \
     git \
     wget 
 
-ENV PATH="/root/miniconda3/bin:${PATH}"
-ARG PATH="/root/miniconda3/bin:${PATH}"
 
-RUN wget \
-    https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
-    && mkdir /root/.conda \
-    && bash Miniconda3-latest-Linux-x86_64.sh -b \
-    && rm -f Miniconda3-latest-Linux-x86_64.sh 
+######################
+#OCC :
+#####################
 
 
+RUN apt-get install -y wget git build-essential libgl1-mesa-dev libfreetype6-dev libglu1-mesa-dev libzmq3-dev libsqlite3-dev libicu-dev python3-dev libgl2ps-dev libfreeimage-dev libtbb-dev ninja-build bison autotools-dev automake libpcre3 libpcre3-dev tcl8.6 tcl8.6-dev tk8.6 tk8.6-dev libxmu-dev libxi-dev libopenblas-dev libboost-all-dev swig libxml2-dev cmake rapidjson-dev
 
-RUN conda --version
+RUN dpkg-reconfigure --frontend noninteractive tzdata
+
+
+############################################################
+# OCCT 7.5.3                                               #
+# Download the official source package from git repository #
+############################################################
+WORKDIR /opt/build
+RUN wget 'https://git.dev.opencascade.org/gitweb/?p=occt.git;a=snapshot;h=fecb042498514186bd37fa621cdcf09eb61899a3;sf=tgz' -O occt-fecb042.tar.gz
+RUN tar -zxvf occt-fecb042.tar.gz >> extracted_occt753_files.txt
+RUN mkdir occt-fecb042/build
+WORKDIR /opt/build/occt-fecb042/build
+
+RUN ls /usr/include
+RUN cmake -G Ninja \
+ -DINSTALL_DIR=/opt/build/occt753 \
+ -DBUILD_RELEASE_DISABLE_EXCEPTIONS=OFF \
+ ..
+
+RUN ninja install
+
+RUN echo "/opt/build/occt753/lib" >> /etc/ld.so.conf.d/occt.conf
+RUN ldconfig
+
+RUN ls /opt/build/occt753
+RUN ls /opt/build/occt753/lib
+
+#############
+# pythonocc #
+#############
+WORKDIR /opt/build
+RUN git clone https://github.com/tpaviot/pythonocc-core
+WORKDIR /opt/build/pythonocc-core
+#RUN git checkout 7.5.1
+WORKDIR /opt/build/pythonocc-core/build
+
+RUN cmake \
+ -DOCE_INCLUDE_PATH=/opt/build/occt753/include/opencascade \
+ -DOCE_LIB_PATH=/opt/build/occt753/lib \
+ -DPYTHONOCC_BUILD_TYPE=Release \
+ ..
+
+RUN make -j3 && make install 
+
+############
+# svgwrite #
+############
+RUN pip install svgwrite
 
 
 RUN pip install catkin_tools
-
 
 WORKDIR /ros_ws/src
 
@@ -41,14 +84,7 @@ WORKDIR /ros_ws
 
 WORKDIR /scripts_occ
 
-RUN conda create --name=pyoccenv python=3.7
-RUN conda init bash
 
-#RUN bash -c "source ${HOME}/.bashrc"
-#SHELL ["/bin/bash", "-c"]
-#RUN source ~/miniconda3/etc/profile.d/conda.sh
-#RUN conda activate pyoccenv
-RUN conda install -n pyoccenv -c conda-forge pythonocc-core=7.5.1 occt=7.5.1
 
 # We source the ros_ws workspace as well when entering the container
 #RUN cp /ros_entrypoint.sh /tmp_entrypoint.sh
