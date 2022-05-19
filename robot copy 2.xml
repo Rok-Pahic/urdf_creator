@@ -1,5 +1,14 @@
 <?xml version="1.0" ?>
 <robot name="fifi" version="1.1">
+
+  <gazebo>
+    <plugin name="control" filename="libgazebo_ros_state.so">
+    <joint_name>Jointarm2arm1</joint_name>
+    <update_rate>10</update_rate>
+    </plugin>
+  </gazebo>
+
+
   <link name="arm2">
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <inertial>
