@@ -14,6 +14,7 @@ from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeWire
 #data=read_step_file_asembly('D:\modeling\Double_pendulum\Body_CAD\Skelet\skelet_DP.STEP')
 
 #data=read_step_file_asembly('D:\modeling\Double_pendulum\Body_CAD\Whole_Body_DP.STEP')
+
 data=read_step_file_asembly('/home/rok/Documents/Python-projects/urdf_creator/test/skelet_DP.STEP')
 
 for u in data:
@@ -29,13 +30,16 @@ from scipy.spatial.transform import Rotation as R
 
 from urdf_parser_py import urdf
 from urdf_parser_py.urdf import URDF, Link, Visual, Cylinder, Pose, Joint, Inertial, Inertia, JointLimit, Collision
+
+
+# ROBOT META DATA
+
 robot=URDF()
 robot.name='fifi'
 
 robot.version='1.0'
 
 # create links
-
 
 
 segments_data={}
@@ -255,7 +259,7 @@ for u in data:
 
 
 
-robot1= URDF.from_xml_file('pi_robot.xml')
+#robot1= URDF.from_xml_file('pi_robot.xml')
 
 
 
@@ -268,6 +272,10 @@ robot1= URDF.from_xml_file('pi_robot.xml')
 #
 file_handle = open("robot.xml","w")
 #print(robot)
+
+
+robot.gazebos=['control']
+
 file_handle.write(robot.to_xml_string())
 
 print('FINISH')
