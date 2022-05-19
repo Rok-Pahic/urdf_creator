@@ -8,4 +8,4 @@ echo $package_name
 cd /ros_ws/src
 catkin_create_pkg $package_name
 cd $package_name
-mkdir geometry
+mkdir urdf

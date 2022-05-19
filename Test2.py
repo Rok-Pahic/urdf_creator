@@ -32,7 +32,7 @@ from urdf_parser_py.urdf import URDF, Link, Visual, Cylinder, Pose, Joint, Inert
 robot=URDF()
 robot.name='fifi'
 
-robot.version='1.1'
+robot.version='1.0'
 
 # create links
 
