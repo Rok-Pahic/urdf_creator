@@ -1,1 +1,9 @@
+test/
+robot_test.xml
 
+*.STEP
+*.step
+
+*.stl
+*.stp
+*.urdf

@@ -129,7 +129,7 @@ def read_step_file_asembly(filename):
                     locs.pop()
 
         elif shape_tool.IsSimpleShape(lab):
-            #print("\n########  simpleshape label :", lab)
+            print("\n########  simpleshape label :", lab)
             shape = shape_tool.GetShape(lab)
             #print("    all ass locs   :", locs)
 
