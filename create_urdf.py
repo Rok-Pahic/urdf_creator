@@ -1,8 +1,9 @@
 
+from itertools import count
 from Asembly_import import read_step_file_asembly
 from OCC.Extend.TopologyUtils import TopologyExplorer
 from OCC.Core.BRep import  BRep_Tool_Pnt,BRep_TEdge
-from OCC.Core.gp import  gp_Vec,gp_Quaternion, gp_Pnt , gp_Trsf
+from OCC.Core.gp import  gp_Vec, gp_Quaternion, gp_Pnt , gp_Trsf, gp_Ax1
 from OCC.Core.TopLoc import TopLoc_Location
 from os import path
 
@@ -18,7 +19,7 @@ from OCC.Core.StlAPI import StlAPI_Writer
 parts_data = read_step_file_asembly('test ijs 2dof.STEP')
 import os
 import numpy as np
-
+import copy
 #from scipy.spatial.transform import Rotation as R
 
 #import tf2_py as tf
@@ -66,14 +67,19 @@ def calculateTfToRoot(joint, joint_list):
     parent_name = joint['parent']
 
     global_this_tf = joint['location']
-    local_tf = global_this_tf
+    local_tf = gp_Trsf()#copy.deepcopy(global_this_tf)
+    found = False
     for other_joint in joint_list:
 
         if other_joint['child'] == parent_name:
             global_other_tf = other_joint['location']
-            local_tf =global_other_tf.Inverted().Multiplied(global_this_tf) 
+            local_tf = global_other_tf.Inverted().Multiplied(global_this_tf) 
+            found = True
             break
-
+    if found == False: #is root joint
+            
+            local_tf.SetTranslation(gp_Vec(0,0,0))
+            local_tf.SetRotation(gp_Quaternion(0,0,0,1))
     
     return local_tf
 
@@ -176,7 +182,7 @@ for joint in robot_joints:
     joint_limit=JointLimit(effort=1000, lower=-1.548, upper=1.548, velocity=0.5)
     or_j = toEuler(joint["local_tf"])
     pos_j = changePos2M(joint["local_tf"])
-    joint["local_tf"]
+    
     #pos_j = joint["position"]
     Pos1 = Pose(xyz=pos_j, rpy=or_j)#'zyx'
     #Pos1 = Pose(xyz=[0,0,0], rpy=[0,0,0,])#'zyx'
@@ -191,35 +197,46 @@ for joint in robot_joints:
 
 
 
-#ADD MATERIALS
-Mat1 = Material(name= "test", color = urdf.Color(robot_parts[0]["color"]+[1]) )# )
 #robot.add_material(Mat1)
 
 #CREATE ROBOT LINKS
 relative_mesh_path = "meshes/"
 stl_urdf_root ="package://test_rospkg/"
-
+counter = 0
 for link_name in robot_links:
     #search for coresponding joint
-    translation  = [0,0,0]
-    for joint in robot_joints:
-
-        if joint["child"]==link_name:
-            tf = joint["location"]
-            translation_a = changePos2M(tf)
-
-            translation = [ -x for x in translation_a ]
-
-
-
     urdf_link = Link(name = link_name, visual = None, inertial = None, collision = None)#, origin = link_pose
 
+
+
+
     #add visuals
+
     if link_name in robot_links_vis_data:
         meshpath = stl_urdf_root + relative_mesh_path + link_name + '.stl'
-        Pos1 = Pose(xyz=translation,rpy=[0,0,0,])#'zyx'
+
+
+        translation  = [0,0,0]
+        if True:
+            for joint in robot_joints:
+
+                if joint["child"]==link_name:
+
+                    tf = joint["location"].Inverted()
+
+                    translation = changePos2M(tf)
+                    or_part = toEuler(tf)
+
+
+
+
+        Pos1 = Pose(xyz=translation,rpy=or_part)#'zyx'
         
-    
+
+        #ADD MATERIALS
+        
+        Mat1 = Material(name= "test", color = urdf.Color(robot_parts[counter]["color"]+[1]) )# )
+        counter = counter +1
         Vis1 = Visual(geometry=Mesh(filename= meshpath), material=Mat1, origin=Pos1, name=None)
 
         #Vis1 = Visual(geometry=Cylinder(radius=0.005, length=0.5), material=None, origin=Pos1, name=None)
