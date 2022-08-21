@@ -80,10 +80,13 @@ def calculateTfToRoot(joint, joint_list):
             local_tf = global_other_tf.Inverted().Multiplied(global_this_tf) 
             found = True
             break
-    if found == False: #is root joint
+
+    if found == False: #is to root joint  
             
-            local_tf.SetTranslation(gp_Vec(0,0,0))
-            local_tf.SetRotation(gp_Quaternion(0,0,0,1))
+        local_tf.SetTranslation(gp_Vec(0,0,0)) 
+        local_tf.SetRotation(gp_Quaternion(0,0,0,1))
+
+        #local_tf = global_this_tf
     
     return local_tf
 
@@ -116,11 +119,17 @@ for part in parts_data:
                 ind = connection_name.find("_")
                 child_name = connection_name[0:ind]
 
+                if child_name == "": #chec if this is root link
+                    root_link_name = parent_name
+                    child_name = parent_name #to enable moving everithing to this frame
+                    parent_name = "" #"root joint doesnt have parent"
+
+  
                 joint_data = {}
                 joint_data["name"] = parent_name + "_" + child_name
                 
                 for test_type in avalibel_joint_types: #iteratetrough avalibel type and set correct one
-                    if joint_name.find(test_type)==1:
+                    if segment_name.find(test_type)==0:
                         joint_data["type"] = test_type
                         break
 
@@ -131,12 +140,16 @@ for part in parts_data:
                 joint_data["location"] = segment_location
                 robot_joints.append(joint_data)
 
-                #Create links
-                if not parent_name in robot_links:
-                    robot_links.append(parent_name)
-
+                #Test child links and add
                 if not child_name in robot_links:
                     robot_links.append(child_name)
+
+                #Create links
+                if parent_name !="": #not epty root mark
+                    if not parent_name in robot_links:
+                        robot_links.append(parent_name)
+
+
 
 
             else:
@@ -148,22 +161,22 @@ for part in parts_data:
         else:
 
 
-            if not(segment_hierarchy[1] in robot_links): #make list of links at top hiarchie
+            if not(segment_hierarchy[1] in robot_links) and not(segment_hierarchy[1] in robot_links_vis_data): #make list of links at top hiarchie
             #segments_data={segment_hierarchy[-1]:{segment_name:segment_location}}        
                 robot_links_vis_data.append(segment_hierarchy[1])
 
-            #zloži elemente v dictionary po hiarhiji
-            if segment_hierarchy[-1] in segments_data:
-                segments_data[segment_hierarchy[-1]].update({segment_name: part})
-            else:
-                segments_data.update({segment_hierarchy[-1]:{segment_name:part}})
-            robot_part = {}
-            robot_part["name"] = segment_name
-            robot_part["location"] = segment_location
-            robot_part["hierarchy"] = segment_hierarchy
-            robot_part["part"] = part
-            robot_part["color"] = [segment_color.Red(),segment_color.Green(),segment_color.Blue()]
-            robot_parts.append(robot_part)
+                #zloži elemente v dictionary po hiarhiji
+                if segment_hierarchy[-1] in segments_data:
+                    segments_data[segment_hierarchy[-1]].update({segment_name: part})
+                else:
+                    segments_data.update({segment_hierarchy[-1]:{segment_name:part}})
+                robot_part = {}
+                robot_part["name"] = segment_name
+                robot_part["location"] = segment_location
+                robot_part["hierarchy"] = segment_hierarchy
+                robot_part["part"] = part
+                robot_part["color"] = [segment_color.Red(),segment_color.Green(),segment_color.Blue()]
+                robot_parts.append(robot_part)
 
 
 
@@ -195,21 +208,22 @@ for joint in robot_joints:
 
 for joint in robot_joints:
 
-    joint_limit=JointLimit(effort=1000, lower=-1.548, upper=1.548, velocity=0.5)
-    or_j = toEuler(joint["local_tf"])
-    pos_j = changePos2M(joint["local_tf"])
-    
-    #pos_j = joint["position"]
-    Pos1 = Pose(xyz=pos_j, rpy=or_j)#'zyx'
-    #Pos1 = Pose(xyz=[0,0,0], rpy=[0,0,0,])#'zyx'
-    new_joint = Joint( name= joint["name"], parent=joint["parent"], child=joint["child"], joint_type=joint["type"],
-                        axis=[1, 0, 0], origin=Pos1,
-                        limit=joint_limit, dynamics=None, safety_controller=None,
-                        calibration=None, mimic=None)
+    if joint["parent"]!="":#if root link joint dont add it to the joints
+        joint_limit=JointLimit(effort=1000, lower=-1.548, upper=1.548, velocity=0.5)
+        or_j = toEuler(joint["local_tf"])
+        pos_j = changePos2M(joint["local_tf"])
+        
+        #pos_j = joint["position"]
+        Pos1 = Pose(xyz=pos_j, rpy=or_j)#'zyx'
+        #Pos1 = Pose(xyz=[0,0,0], rpy=[0,0,0,])#'zyx'
+        new_joint = Joint( name= joint["name"], parent=joint["parent"], child=joint["child"], joint_type=joint["type"],
+                            axis=[1, 0, 0], origin=Pos1,
+                            limit=joint_limit, dynamics=None, safety_controller=None,
+                            calibration=None, mimic=None)
 
 
 
-    robot.add_joint(new_joint)
+        robot.add_joint(new_joint)
 
 
 
@@ -220,76 +234,53 @@ relative_mesh_path = "meshes/"
 stl_urdf_root ="package://test_rospkg/"
 counter = 0
 for link_name in robot_links:
-    #search for coresponding joint
-    urdf_link = Link(name = link_name, visual = None, inertial = None, collision = None)#, origin = link_pose
+
+    if link_name != root_link_name: #this is overjuped because we add it leater
+        #search for coresponding joint
+        urdf_link = Link(name = link_name, visual = None, inertial = None, collision = None)#, origin = link_pose
+
+        #add visuals
+
+        if link_name in robot_links_vis_data:
+            robot_links_vis_data.pop(link_name)
+            meshpath = stl_urdf_root + relative_mesh_path + link_name + '.stl'
+
+
+            translation  = [0,0,0]
+            if True:
+                for joint in robot_joints:
+
+                    if joint["child"]==link_name:
+
+                        tf = joint["location"].Inverted()
+
+                        translation = changePos2M(tf)
+                        or_part = toEuler(tf)
 
 
 
 
-    #add visuals
+            Pos1 = Pose(xyz=translation,rpy=or_part)#'zyx'
+            
 
-    if link_name in robot_links_vis_data:
-        meshpath = stl_urdf_root + relative_mesh_path + link_name + '.stl'
+            #ADD MATERIALS
+            
+            Mat1 = Material(name= "test", color = urdf.Color(robot_parts[counter]["color"]+[1]) )# )
+            counter = counter +1
+            Vis1 = Visual(geometry=Mesh(filename= meshpath), material=Mat1, origin=Pos1, name=None)
 
-
-        translation  = [0,0,0]
-        if True:
-            for joint in robot_joints:
-
-                if joint["child"]==link_name:
-
-                    tf = joint["location"].Inverted()
-
-                    translation = changePos2M(tf)
-                    or_part = toEuler(tf)
+            #Vis1 = Visual(geometry=Cylinder(radius=0.005, length=0.5), material=None, origin=Pos1, name=None)
+            urdf_link.add_aggregate('visual', Vis1)
 
 
 
-
-        Pos1 = Pose(xyz=translation,rpy=or_part)#'zyx'
-        
-
-        #ADD MATERIALS
-        
-        Mat1 = Material(name= "test", color = urdf.Color(robot_parts[counter]["color"]+[1]) )# )
-        counter = counter +1
-        Vis1 = Visual(geometry=Mesh(filename= meshpath), material=Mat1, origin=Pos1, name=None)
-
-        #Vis1 = Visual(geometry=Cylinder(radius=0.005, length=0.5), material=None, origin=Pos1, name=None)
-        urdf_link.add_aggregate('visual', Vis1)
-
-
-
-    robot.add_link(urdf_link)
-
-
-
-
-
-#SAVE URDF
-package_path = "/ros_ws/src/test_rospkg"
-
-urdf_path = package_path +"/urdf/part1.urdf"
-
-file_handle = open(urdf_path,"w")
-#print(robot)
-
-
-robot.gazebos = ['control']
-
-
-file_handle.write(robot.to_xml_string())
-file_handle.close()
-print(robot.to_xml_string())
-print('FINISH')
-
-
+        robot.add_link(urdf_link)
 
 
 
 #CREATE STLS
 
-
+package_path = "/ros_ws/src/test_rospkg"
 
 
 #convert to stls
@@ -302,6 +293,7 @@ from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
 
 
 stl_output_dir = package_path + "/meshes" #"os.path.abspath("/ros_ws/src/test_rospkg/meshes")
+output_files = []
 for part in robot_parts:
 
     print(part)
@@ -322,11 +314,58 @@ for part in robot_parts:
     
     
     write_stl_file(scaled_part, output_file )
+    output_files.append(file_name)
 
     #error = stl_writer.Write(mesh.Shape(), file_name)
 
 
+
+# ADD ROOT LINK WITH ALL REMANING VISUAL
+
+urdf_link = Link(name = root_link_name, visual = None, inertial = None, collision = None)#, origin = link_pose
+Mat1 = Material(name= "test")
+
+
+#meshes = []
+for mesh in output_files:
+    meshpath = stl_urdf_root + relative_mesh_path + mesh
+    Vis1 = Visual(geometry=Mesh(filename= meshpath),material=Mat1, origin=Pos1, name=None)
+
+
+    urdf_link.add_aggregate('visual', Vis1)
+
+robot.add_link(urdf_link)
+
+#SAVE URDF
+
+
+urdf_path = package_path +"/urdf/part1.urdf"
+
+file_handle = open(urdf_path,"w")
+#print(robot)
+
+
+robot.gazebos = ['control']
+
+
+file_handle.write(robot.to_xml_string())
+file_handle.close()
+print(robot.to_xml_string())
+print('FINISH')
+
+
+
+
+
+
+
+
+
 print("end")
+
+
+
+
 
 
 if False:
