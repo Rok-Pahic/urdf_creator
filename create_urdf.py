@@ -12,11 +12,15 @@ from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeWire, BRepBuilderAPI_Tran
 
 from OCC.Core.StlAPI import StlAPI_Writer
 
+from OCC.Core.TopoDS import TopoDS_Compound, TopoDS_Solid
 
 #parts_data = read_step_file_asembly('test ijs part.STEP')
 #parts_data = read_step_file_asembly('ijs 3.STEP')
 #parts_data = read_step_file_asembly('reconcycle.stp')
-parts_data = read_step_file_asembly('test ijs 2dof.STEP')
+
+#parts_data = read_step_file_asembly('test ijs 2dof.STEP')
+parts_data = read_step_file_asembly('Storage v21.step')
+
 import os
 import numpy as np
 import copy
@@ -83,71 +87,83 @@ def calculateTfToRoot(joint, joint_list):
     
     return local_tf
 
+avalibel_joint_types = ["fixed","revolute", "prismatic"]
+
+
 for part in parts_data:
-    segment_name, segment_color, segment_hierarchy, segment_trans = parts_data[part]
+    if type(part) == TopoDS_Solid or type(part) == TopoDS_Compound : #check id solid or compound
+        segment_name, segment_color, segment_hierarchy, segment_trans = parts_data[part]
 
-    print(segment_hierarchy)
-    print(segment_name)
+        print(segment_hierarchy)
+        print(segment_name)
 
-    segment_location = part.Location().Transformation()
+        segment_location = part.Location().Transformation()
 
-    
-    segment_position = changePos2M(segment_location)
-    segment_q_orientation = [segment_location.GetRotation().X(), segment_location.GetRotation().Y(), segment_location.GetRotation().Z(), segment_location.GetRotation().W()]
-    print(segment_location)
-    #Parse joints data
-    if segment_hierarchy[1] == "URDF": #check for urdf
-        joint_name = segment_hierarchy[2] 
-        if joint_name.find("joint_")==0:
-            connection_name = joint_name[6:]
-            ind = connection_name.find("2")
-            parent_name = connection_name[0:ind]
-            name_start = connection_name.find("_")
-            child_name = connection_name[ind+1:name_start]
 
-            joint_data = {}
-            joint_data["name"] = connection_name[name_start+1:]
-            joint_data["type"] = segment_name
-            joint_data["parent"] = parent_name
-            joint_data["child"] = child_name
-            joint_data["position"] = segment_position
-            joint_data["rotation"] = segment_q_orientation
-            joint_data["location"] = segment_location
-            robot_joints.append(joint_data)
+        segment_position = changePos2M(segment_location)
+        segment_q_orientation = [segment_location.GetRotation().X(), segment_location.GetRotation().Y(), segment_location.GetRotation().Z(), segment_location.GetRotation().W()]
+        print(segment_location)
+        #Parse joints data
+        if segment_hierarchy[1] == "URDF" or segment_hierarchy[1] == "urdf": #check for urdf
+            joint_name = segment_hierarchy[2] 
+            if joint_name.find("joint_")==0:
 
-            #Create links
-            if not parent_name in robot_links:
-                robot_links.append(parent_name)
+                connection_name = joint_name[6:]
+                connection_id_string = "_to_"
+                ind = connection_name.find(connection_id_string)
+                parent_name = connection_name[0:ind]
+                connection_name = connection_name[len(parent_name)+len(connection_id_string):]
+                ind = connection_name.find("_")
+                child_name = connection_name[0:ind]
 
-            if not child_name in robot_links:
-                robot_links.append(child_name)
+                joint_data = {}
+                joint_data["name"] = parent_name + "_" + child_name
+                
+                for test_type in avalibel_joint_types: #iteratetrough avalibel type and set correct one
+                    if joint_name.find(test_type)==1:
+                        joint_data["type"] = test_type
+                        break
+
+                joint_data["parent"] = parent_name
+                joint_data["child"] = child_name
+                joint_data["position"] = segment_position
+                joint_data["rotation"] = segment_q_orientation
+                joint_data["location"] = segment_location
+                robot_joints.append(joint_data)
+
+                #Create links
+                if not parent_name in robot_links:
+                    robot_links.append(parent_name)
+
+                if not child_name in robot_links:
+                    robot_links.append(child_name)
+
+
+            else:
+
+                print("PROBLEM: Not correct naming of joints in URDF asembly")
+                print(joint_name)
 
 
         else:
 
-            print("PROBLEM: Not correct naming of joints in URDF asembly")
-            print(joint_name)
 
+            if not(segment_hierarchy[1] in robot_links): #make list of links at top hiarchie
+            #segments_data={segment_hierarchy[-1]:{segment_name:segment_location}}        
+                robot_links_vis_data.append(segment_hierarchy[1])
 
-    else:
-
-
-        if not(segment_hierarchy[1] in robot_links): #make list of links at top hiarchie
-        #segments_data={segment_hierarchy[-1]:{segment_name:segment_location}}        
-            robot_links_vis_data.append(segment_hierarchy[1])
-
-        #zloži elemente v dictionary po hiarhiji
-        if segment_hierarchy[-1] in segments_data:
-            segments_data[segment_hierarchy[-1]].update({segment_name: part})
-        else:
-            segments_data.update({segment_hierarchy[-1]:{segment_name:part}})
-        robot_part = {}
-        robot_part["name"] = segment_name
-        robot_part["location"] = segment_location
-        robot_part["hierarchy"] = segment_hierarchy
-        robot_part["part"] = part
-        robot_part["color"] = [segment_color.Red(),segment_color.Green(),segment_color.Blue()]
-        robot_parts.append(robot_part)
+            #zloži elemente v dictionary po hiarhiji
+            if segment_hierarchy[-1] in segments_data:
+                segments_data[segment_hierarchy[-1]].update({segment_name: part})
+            else:
+                segments_data.update({segment_hierarchy[-1]:{segment_name:part}})
+            robot_part = {}
+            robot_part["name"] = segment_name
+            robot_part["location"] = segment_location
+            robot_part["hierarchy"] = segment_hierarchy
+            robot_part["part"] = part
+            robot_part["color"] = [segment_color.Red(),segment_color.Green(),segment_color.Blue()]
+            robot_parts.append(robot_part)
 
 
 
