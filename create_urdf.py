@@ -94,6 +94,8 @@ avalibel_joint_types = ["fixed","revolute", "prismatic"]
 
 
 for part in parts_data:
+
+
     if type(part) == TopoDS_Solid or type(part) == TopoDS_Compound : #check id solid or compound
         segment_name, segment_color, segment_hierarchy, segment_trans = parts_data[part]
 
@@ -160,23 +162,25 @@ for part in parts_data:
 
         else:
 
+            if type(part) == TopoDS_Solid:#== TopoDS_Compound : #
 
-            if not(segment_hierarchy[1] in robot_links) and not(segment_hierarchy[1] in robot_links_vis_data): #make list of links at top hiarchie
-            #segments_data={segment_hierarchy[-1]:{segment_name:segment_location}}        
-                robot_links_vis_data.append(segment_hierarchy[1])
+                if False:            
+                    if not(segment_hierarchy[1] in robot_links) and not(segment_hierarchy[1] in robot_links_vis_data): #make list of links at top hiarchie
+                    #segments_data={segment_hierarchy[-1]:{segment_name:segment_location}}        
+                        robot_links_vis_data.append(segment_hierarchy[1])
 
-                #zloži elemente v dictionary po hiarhiji
-                if segment_hierarchy[-1] in segments_data:
-                    segments_data[segment_hierarchy[-1]].update({segment_name: part})
-                else:
-                    segments_data.update({segment_hierarchy[-1]:{segment_name:part}})
-                robot_part = {}
-                robot_part["name"] = segment_name
-                robot_part["location"] = segment_location
-                robot_part["hierarchy"] = segment_hierarchy
-                robot_part["part"] = part
-                robot_part["color"] = [segment_color.Red(),segment_color.Green(),segment_color.Blue()]
-                robot_parts.append(robot_part)
+                        #zloži elemente v dictionary po hiarhiji
+                        if segment_hierarchy[-1] in segments_data:
+                            segments_data[segment_hierarchy[-1]].update({segment_name: part})
+                        else:
+                            segments_data.update({segment_hierarchy[-1]:{segment_name:part}})
+            robot_part = {}
+            robot_part["name"] = segment_name
+            robot_part["location"] = segment_location
+            robot_part["hierarchy"] = segment_hierarchy
+            robot_part["part"] = part
+            robot_part["color"] = [segment_color.Red(),segment_color.Green(),segment_color.Blue()]
+            robot_parts.append(robot_part)
 
 
 
@@ -232,49 +236,51 @@ for joint in robot_joints:
 #CREATE ROBOT LINKS
 relative_mesh_path = "meshes/"
 stl_urdf_root ="package://test_rospkg/"
-counter = 0
-for link_name in robot_links:
+if True:
 
-    if link_name != root_link_name: #this is overjuped because we add it leater
-        #search for coresponding joint
-        urdf_link = Link(name = link_name, visual = None, inertial = None, collision = None)#, origin = link_pose
+    counter = 0
+    for link_name in robot_links:
 
-        #add visuals
+        if link_name != root_link_name: #this is overjuped because we add it leater
+            #search for coresponding joint
+            urdf_link = Link(name = link_name, visual = None, inertial = None, collision = None)#, origin = link_pose
 
-        if link_name in robot_links_vis_data:
-            robot_links_vis_data.pop(link_name)
-            meshpath = stl_urdf_root + relative_mesh_path + link_name + '.stl'
+            #add visuals
 
-
-            translation  = [0,0,0]
-            if True:
-                for joint in robot_joints:
-
-                    if joint["child"]==link_name:
-
-                        tf = joint["location"].Inverted()
-
-                        translation = changePos2M(tf)
-                        or_part = toEuler(tf)
+            if link_name in robot_links_vis_data:
+                robot_links_vis_data.pop(link_name)
+                meshpath = stl_urdf_root + relative_mesh_path + link_name + '.stl'
 
 
+                translation  = [0,0,0]
+                if True:
+                    for joint in robot_joints:
 
+                        if joint["child"]==link_name:
 
-            Pos1 = Pose(xyz=translation,rpy=or_part)#'zyx'
-            
+                            tf = joint["location"].Inverted()
 
-            #ADD MATERIALS
-            
-            Mat1 = Material(name= "test", color = urdf.Color(robot_parts[counter]["color"]+[1]) )# )
-            counter = counter +1
-            Vis1 = Visual(geometry=Mesh(filename= meshpath), material=Mat1, origin=Pos1, name=None)
-
-            #Vis1 = Visual(geometry=Cylinder(radius=0.005, length=0.5), material=None, origin=Pos1, name=None)
-            urdf_link.add_aggregate('visual', Vis1)
+                            translation = changePos2M(tf)
+                            or_part = toEuler(tf)
 
 
 
-        robot.add_link(urdf_link)
+
+                Pos1 = Pose(xyz=translation,rpy=or_part)#'zyx'
+                
+
+                #ADD MATERIALS
+                
+                Mat1 = Material(name= "test", color = urdf.Color(robot_parts[counter]["color"]+[1]) )# )
+                counter = counter +1
+                Vis1 = Visual(geometry=Mesh(filename= meshpath), material=Mat1, origin=Pos1, name=None)
+
+                #Vis1 = Visual(geometry=Cylinder(radius=0.005, length=0.5), material=None, origin=Pos1, name=None)
+                urdf_link.add_aggregate('visual', Vis1)
+
+
+
+            robot.add_link(urdf_link)
 
 
 
@@ -294,11 +300,31 @@ from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
 
 stl_output_dir = package_path + "/meshes" #"os.path.abspath("/ros_ws/src/test_rospkg/meshes")
 output_files = []
+file_names = []
+
+test_count = 0
+max_parts = 10
+#root_link_name ="Base"
 for part in robot_parts:
 
     print(part)
     #file_name = part['hierarchy'][-1]+"-"+part["name"]+".stl"
-    file_name = part['hierarchy'][-1]+".stl"
+    if test_count>max_parts:
+        break
+    test_count = test_count + 1
+
+    made_name = part["name"]
+    #for h_name in part['hierarchy']:
+        #made_name = h_name + made_name
+
+    file_name = made_name 
+    while file_name in file_names:
+        file_name = file_name +"_"
+
+    file_names.append(file_name)    
+
+    file_name = file_name + ".stl"
+
     output_file = os.path.join(stl_output_dir,file_name)
     #stl_writer = StlAPI_Writer()
     #stl_writer.SetASCIIMode(True)
@@ -327,12 +353,28 @@ Mat1 = Material(name= "test")
 
 
 #meshes = []
+counter = 0
 for mesh in output_files:
+    part  = robot_parts[counter]
     meshpath = stl_urdf_root + relative_mesh_path + mesh
+    Mat1 = Material(name= "test", color = urdf.Color(robot_parts[counter]["color"]+[1]) )# )
+
+    tf = part["location"]
+
+    translation = changePos2M(tf)
+    translation  = [0,0,0]
+    or_part = toEuler(tf)
+    or_part = [0,0,0]
+
+    Pos1 = Pose(xyz=translation,rpy=or_part)#'zyx'
+            
     Vis1 = Visual(geometry=Mesh(filename= meshpath),material=Mat1, origin=Pos1, name=None)
 
 
     urdf_link.add_aggregate('visual', Vis1)
+    counter = counter + 1
+
+
 
 robot.add_link(urdf_link)
 
