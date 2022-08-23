@@ -36,12 +36,6 @@ from urdf_parser_py import urdf
 from urdf_parser_py.urdf import URDF, Link, Visual, Cylinder, Pose, Joint, Inertial, Inertia, JointLimit, Collision, Mesh, Material
 
 
-# ROBOT META DATA
-
-robot=URDF()
-robot.name='fifi'
-
-robot.version='1.0'
 
 # create links
 
@@ -130,7 +124,7 @@ for part in parts_data:
                 joint_data = {}
                 joint_data["name"] = parent_name + "_" + child_name
                 
-                for test_type in avalibel_joint_types: #iteratetrough avalibel type and set correct one
+                for test_type in avalibel_joint_types: #iterate trough avalibel type and set correct one
                     if segment_name.find(test_type)==0:
                         joint_data["type"] = test_type
                         break
@@ -174,17 +168,19 @@ for part in parts_data:
                             segments_data[segment_hierarchy[-1]].update({segment_name: part})
                         else:
                             segments_data.update({segment_hierarchy[-1]:{segment_name:part}})
-            robot_part = {}
-            robot_part["name"] = segment_name
-            robot_part["location"] = segment_location
-            robot_part["hierarchy"] = segment_hierarchy
-            robot_part["part"] = part
-            robot_part["color"] = [segment_color.Red(),segment_color.Green(),segment_color.Blue()]
-            robot_parts.append(robot_part)
+                robot_part = {}
+                robot_part["name"] = segment_name
+                robot_part["location"] = segment_location
+                robot_part["hierarchy"] = segment_hierarchy
+                robot_part["part"] = part
+                robot_part["color"] = [segment_color.Red(),segment_color.Green(),segment_color.Blue()]
+                robot_parts.append(robot_part)
 
-
-
-
+#asembly = TopoDS_Compound()
+#TopoDS_Bilder
+#for part in robot_parts:
+    #asembly
+    
     
 #add base link and joint
 
@@ -208,6 +204,123 @@ for joint in robot_joints:
     pass
 
 
+
+
+
+#CREATE STLS
+
+package_path = "/ros_ws/src/test_rospkg"
+
+
+#convert to stls
+from OCC.Extend.DataExchange import write_stl_file
+
+from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
+
+
+#stl_output_dir = os.path.abspath(os.path.join(".","models/"))
+
+
+stl_output_dir = package_path + "/meshes" #"os.path.abspath("/ros_ws/src/test_rospkg/meshes")
+output_files = []
+file_names = []
+
+test_count = 0
+max_parts = 2000
+#root_link_name ="Base"
+colors_values = []
+colors_names = []
+color_counter = 0
+materials = []
+
+for part in robot_parts:
+
+    print(part)
+    #file_name = part['hierarchy'][-1]+"-"+part["name"]+".stl"
+    if test_count>max_parts:
+        break
+    test_count = test_count + 1
+
+    made_name = part["name"]
+    #for h_name in part['hierarchy']:
+        #made_name = h_name + made_name
+    name_counter = 0
+    file_name = made_name + str(name_counter)
+   
+    while file_name in file_names:
+
+        name_counter = name_counter + 1
+        file_name = made_name + str(name_counter)
+        
+
+    file_names.append(file_name)    
+
+    file_name = file_name + ".stl"
+
+    output_file = os.path.join(stl_output_dir,file_name)
+    #stl_writer = StlAPI_Writer()
+    #stl_writer.SetASCIIMode(True)
+    #mesh = BRepMesh_IncrementalMesh( part["part"], 0.1, False, 0.1, True
+    #)       
+
+
+    #mesh = BRepMesh_IncrementalMesh(my_box, 0.1)
+    #mesh.Perform()
+    trfs = gp_Trsf()
+    trfs.SetScale(gp_Pnt(),0.001)
+    scaled_part = BRepBuilderAPI_Transform(part['part'], trfs).Shape()
+    
+    
+    write_stl_file(scaled_part, output_file )
+    output_files.append(file_name)
+
+    #PREPARE new color
+
+    if part["color"] in colors_values:
+        color_name = colors_names[colors_values.index(part["color"])]
+
+        
+    else:
+        colors_values.append(part["color"])
+        
+        color_name = "color"+str(color_counter)
+        colors_names.append(color_name)
+        materials.append(Material(name = color_name, color = urdf.Color(part["color"]+[1]) ))
+        color_counter = color_counter + 1
+
+    part["material_name"] = color_name
+
+
+    #error = stl_writer.Write(mesh.Shape(), file_name)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ROBOT META DATA
+
+robot=URDF()
+#robot.materials = materials
+
+robot.name='fifi'
+
+robot.version='1.0'
+
+
+
+
+
 #CREATE ROBOT JOINTS
 
 for joint in robot_joints:
@@ -228,6 +341,8 @@ for joint in robot_joints:
 
 
         robot.add_joint(new_joint)
+    else:
+        root_location_in_step = joint["location"]
 
 
 
@@ -284,87 +399,34 @@ if True:
 
 
 
-#CREATE STLS
-
-package_path = "/ros_ws/src/test_rospkg"
-
-
-#convert to stls
-from OCC.Extend.DataExchange import write_stl_file
-
-from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
-
-
-#stl_output_dir = os.path.abspath(os.path.join(".","models/"))
-
-
-stl_output_dir = package_path + "/meshes" #"os.path.abspath("/ros_ws/src/test_rospkg/meshes")
-output_files = []
-file_names = []
-
-test_count = 0
-max_parts = 10
-#root_link_name ="Base"
-for part in robot_parts:
-
-    print(part)
-    #file_name = part['hierarchy'][-1]+"-"+part["name"]+".stl"
-    if test_count>max_parts:
-        break
-    test_count = test_count + 1
-
-    made_name = part["name"]
-    #for h_name in part['hierarchy']:
-        #made_name = h_name + made_name
-
-    file_name = made_name 
-    while file_name in file_names:
-        file_name = file_name +"_"
-
-    file_names.append(file_name)    
-
-    file_name = file_name + ".stl"
-
-    output_file = os.path.join(stl_output_dir,file_name)
-    #stl_writer = StlAPI_Writer()
-    #stl_writer.SetASCIIMode(True)
-    #mesh = BRepMesh_IncrementalMesh( part["part"], 0.1, False, 0.1, True
-    #)       
-
-
-    #mesh = BRepMesh_IncrementalMesh(my_box, 0.1)
-    #mesh.Perform()
-    trfs = gp_Trsf()
-    trfs.SetScale(gp_Pnt(),0.001)
-    scaled_part = BRepBuilderAPI_Transform(part['part'], trfs).Shape()
-    
-    
-    write_stl_file(scaled_part, output_file )
-    output_files.append(file_name)
-
-    #error = stl_writer.Write(mesh.Shape(), file_name)
-
-
 
 # ADD ROOT LINK WITH ALL REMANING VISUAL
 
 urdf_link = Link(name = root_link_name, visual = None, inertial = None, collision = None)#, origin = link_pose
-Mat1 = Material(name= "test")
+
 
 
 #meshes = []
 counter = 0
+first_time_color_definition = np.zeros(len(colors_names))
 for mesh in output_files:
     part  = robot_parts[counter]
     meshpath = stl_urdf_root + relative_mesh_path + mesh
-    Mat1 = Material(name= "test", color = urdf.Color(robot_parts[counter]["color"]+[1]) )# )
+
+    #prepare_material
+    color_index = colors_values.index(robot_parts[counter]["color"])
+    if first_time_color_definition[color_index] == 0:
+        first_time_color_definition[color_index] = 1
+        Mat1 = materials[color_index]
+    else:
+        Mat1 = Material(name = colors_names[color_index] )
 
     tf = part["location"]
 
-    translation = changePos2M(tf)
-    translation  = [0,0,0]
-    or_part = toEuler(tf)
-    or_part = [0,0,0]
+    #translation = changePos2M(tf)
+    translation  = changePos2M(root_location_in_step.Inverted())# [0,0,0]
+    #or_part = toEuler(tf)
+    or_part = toEuler(root_location_in_step.Inverted())#0,0,0]
 
     Pos1 = Pose(xyz=translation,rpy=or_part)#'zyx'
             
@@ -377,7 +439,7 @@ for mesh in output_files:
 
 
 robot.add_link(urdf_link)
-
+robot.materials
 #SAVE URDF
 
 
@@ -392,7 +454,7 @@ robot.gazebos = ['control']
 
 file_handle.write(robot.to_xml_string())
 file_handle.close()
-print(robot.to_xml_string())
+#print(robot.to_xml_string())
 print('FINISH')
 
 
