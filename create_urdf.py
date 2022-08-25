@@ -12,14 +12,14 @@ from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeWire, BRepBuilderAPI_Tran
 
 from OCC.Core.StlAPI import StlAPI_Writer
 
-from OCC.Core.TopoDS import TopoDS_Compound, TopoDS_Solid
+from OCC.Core.TopoDS import TopoDS_Compound, TopoDS_Solid, TopoDS_Shell
 
 #parts_data = read_step_file_asembly('test ijs part.STEP')
 #parts_data = read_step_file_asembly('ijs 3.STEP')
 #parts_data = read_step_file_asembly('reconcycle.stp')
 
 #parts_data = read_step_file_asembly('test ijs 2dof.STEP')
-parts_data = read_step_file_asembly('Storage v21.step')
+parts_data = read_step_file_asembly('StorageV2.step')
 
 import os
 import numpy as np
@@ -88,10 +88,10 @@ avalibel_joint_types = ["fixed","revolute", "prismatic"]
 
 
 for part in parts_data:
+    part_data = parts_data[part]
 
-
-    if type(part) == TopoDS_Solid or type(part) == TopoDS_Compound : #check id solid or compound
-        segment_name, segment_color, segment_hierarchy, segment_trans = parts_data[part]
+    if len(part_data)==4: #type(part) == TopoDS_Solid or type(part) == TopoDS_Compound or type(part) == TopoDS_Shell: #check id solid or compound
+        segment_name, segment_color, segment_hierarchy, segment_trans = part_data
 
         print(segment_hierarchy)
         print(segment_name)
@@ -175,6 +175,20 @@ for part in parts_data:
                 robot_part["part"] = part
                 robot_part["color"] = [segment_color.Red(),segment_color.Green(),segment_color.Blue()]
                 robot_parts.append(robot_part)
+
+            if type(part) == TopoDS_Shell:
+                robot_part = {}
+                robot_part["name"] = segment_name
+                robot_part["location"] = segment_location
+                robot_part["hierarchy"] = segment_hierarchy
+                robot_part["part"] = part
+                robot_part["color"] = [segment_color.Red(),segment_color.Green(),segment_color.Blue()]
+                robot_parts.append(robot_part)
+
+
+    else:
+        segment_name, segment_color = parts_data[part]
+
 
 #asembly = TopoDS_Compound()
 #TopoDS_Bilder
