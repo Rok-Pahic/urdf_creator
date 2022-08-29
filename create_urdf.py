@@ -19,7 +19,8 @@ from OCC.Core.TopoDS import TopoDS_Compound, TopoDS_Solid, TopoDS_Shell
 #parts_data = read_step_file_asembly('reconcycle.stp')
 
 #parts_data = read_step_file_asembly('test ijs 2dof.STEP')
-parts_data = read_step_file_asembly('StorageV2.step')
+#parts_data = read_step_file_asembly('StorageV2.step')
+parts_data = read_step_file_asembly('Cutter v7.step')
 
 import os
 import numpy as np
@@ -136,6 +137,7 @@ for part in parts_data:
                 joint_data["location"] = segment_location
                 robot_joints.append(joint_data)
 
+                #DEFINE LINKS
                 #Test child links and add
                 if not child_name in robot_links:
                     robot_links.append(child_name)
@@ -196,15 +198,6 @@ for part in parts_data:
     #asembly
     
     
-#add base link and joint
-
-#link_pose = Pose(xyz=[0, 0, 0], rpy=[0, 0, 0])
-#Pos1 = Pose(xyz=[0, 0, 0],rpy=[0,0,0,])#'zyx'
-#urdf_link = Link(name = "Robot_base", visual = None, inertial = None, collision = None, origin = link_pose)
-#robot.add_link(urdf_link)
-#new_joint = Joint( name= "base", parent="Robot_base", child=robot_joints[0]["parent"], joint_type="fixed",
-                         #axis=[0, 0, 1], origin=Pos1)
-#robot.add_joint(new_joint)
 
 
 #PREPARE TRANSFORM MATRIX
@@ -216,9 +209,6 @@ for joint in robot_joints:
     joint["local_tf"] = tf
 
     pass
-
-
-
 
 
 #CREATE STLS
@@ -247,6 +237,13 @@ colors_names = []
 color_counter = 0
 materials = []
 
+
+link_meshes = {}
+
+for name in robot_links: #preapre empty matrixes for link meshes
+
+    link_meshes[name] = []
+
 for part in robot_parts:
 
     print(part)
@@ -254,6 +251,7 @@ for part in robot_parts:
     if test_count>max_parts:
         break
     test_count = test_count + 1
+
 
     made_name = part["name"]
     #for h_name in part['hierarchy']:
@@ -304,21 +302,27 @@ for part in robot_parts:
 
     part["material_name"] = color_name
 
+    #FIND_LINK_name:
+    current_name = part["name"] 
 
-    #error = stl_writer.Write(mesh.Shape(), file_name)
+    if "link_" in current_name: #search for link definition in part name
+        current_name = current_name[5:]
+        current_name = current_name[0:current_name.find("_")]
+    else: #search for link defition in hiearchy
+        for parent_name in part["hierarchy"]:
+            if "link_" in parent_name:
+                current_name = parent_name[5:]
+                current_name = current_name[0:current_name.find("_")]
+                break
+            else:
+                current_name = root_link_name
 
+    if current_name in robot_links:
 
+        link_meshes[current_name].append({"mesh_name":file_name,"mesh_material":color_name,"color_value":part["color"]})
 
-
-
-
-
-
-
-
-
-
-
+    else:
+        print("error: no link name")
 
 
 
@@ -330,9 +334,6 @@ robot=URDF()
 robot.name='fifi'
 
 robot.version='1.0'
-
-
-
 
 
 #CREATE ROBOT JOINTS
@@ -348,7 +349,7 @@ for joint in robot_joints:
         Pos1 = Pose(xyz=pos_j, rpy=or_j)#'zyx'
         #Pos1 = Pose(xyz=[0,0,0], rpy=[0,0,0,])#'zyx'
         new_joint = Joint( name= joint["name"], parent=joint["parent"], child=joint["child"], joint_type=joint["type"],
-                            axis=[1, 0, 0], origin=Pos1,
+                            axis=[0, 0, 1], origin=Pos1,
                             limit=joint_limit, dynamics=None, safety_controller=None,
                             calibration=None, mimic=None)
 
@@ -365,95 +366,97 @@ for joint in robot_joints:
 #CREATE ROBOT LINKS
 relative_mesh_path = "meshes/"
 stl_urdf_root ="package://test_rospkg/"
+
+
+
 if True:
 
     counter = 0
+    already_defined_colors = []
     for link_name in robot_links:
 
-        if link_name != root_link_name: #this is overjuped because we add it leater
+        #if link_name != root_link_name: #this is overjuped because we add it leater
             #search for coresponding joint
-            urdf_link = Link(name = link_name, visual = None, inertial = None, collision = None)#, origin = link_pose
+        urdf_link = Link(name = link_name, visual = None, inertial = None, collision = None)#, origin = link_pose
 
-            #add visuals
+        #add visuals
 
-            if link_name in robot_links_vis_data:
-                robot_links_vis_data.pop(link_name)
-                meshpath = stl_urdf_root + relative_mesh_path + link_name + '.stl'
+        for mesh in link_meshes[link_name]:
+            meshpath = stl_urdf_root + relative_mesh_path + mesh["mesh_name"]
 
+            #ADD MATERIALS
+            Mat1 = Material(name = mesh["mesh_material"], color = urdf.Color(mesh["color_value"]+[1]))
+            #if mesh["mesh_material"] in already_defined_colors: #check if you have already somwhere defined this color if not define it
+                #Mat1 = Material(name = mesh["mesh_material"] )
+            #else:
+                #already_defined_colors.append(mesh["mesh_material"])
+                #Mat1 = Material(name = mesh["mesh_material"], color = urdf.Color(mesh["color_value"]+[1]))
 
-                translation  = [0,0,0]
-                if True:
-                    for joint in robot_joints:
+            #translation = changePos2M(tf)
+            if link_name == root_link_name:
+                mesh_location = root_location_in_step
+            else:
+                for joint in robot_joints:
+                    if link_name == joint["child"]:
+                        mesh_location = joint["location"]
+                        break
 
-                        if joint["child"]==link_name:
+            translation  = changePos2M(mesh_location.Inverted())# [0,0,0]
+            #or_part = toEuler(tf)
+            or_part = toEuler(mesh_location.Inverted())#0,0,0]
 
-                            tf = joint["location"].Inverted()
-
-                            translation = changePos2M(tf)
-                            or_part = toEuler(tf)
-
-
-
-
-                Pos1 = Pose(xyz=translation,rpy=or_part)#'zyx'
-                
-
-                #ADD MATERIALS
-                
-                Mat1 = Material(name= "test", color = urdf.Color(robot_parts[counter]["color"]+[1]) )# )
-                counter = counter +1
-                Vis1 = Visual(geometry=Mesh(filename= meshpath), material=Mat1, origin=Pos1, name=None)
-
-                #Vis1 = Visual(geometry=Cylinder(radius=0.005, length=0.5), material=None, origin=Pos1, name=None)
-                urdf_link.add_aggregate('visual', Vis1)
+            Mesh_to_joint_pose = Pose(xyz=translation,rpy=or_part)#'zyx'
 
 
+            Vis1 = Visual(geometry=Mesh(filename= meshpath), material=Mat1, origin=Mesh_to_joint_pose, name=None)
 
-            robot.add_link(urdf_link)
+            #Vis1 = Visual(geometry=Cylinder(radius=0.005, length=0.5), material=None, origin=Pos1, name=None)
+            urdf_link.add_aggregate('visual', Vis1)
+   
+
+        robot.add_link(urdf_link)
 
 
 
 
-# ADD ROOT LINK WITH ALL REMANING VISUAL
-
-urdf_link = Link(name = root_link_name, visual = None, inertial = None, collision = None)#, origin = link_pose
 
 
 
 #meshes = []
-counter = 0
-first_time_color_definition = np.zeros(len(colors_names))
-for mesh in output_files:
-    part  = robot_parts[counter]
-    meshpath = stl_urdf_root + relative_mesh_path + mesh
+if False:
+    counter = 0
+    first_time_color_definition = np.zeros(len(colors_names))
+    for mesh in output_files:
+        part  = robot_parts[counter]
+        meshpath = stl_urdf_root + relative_mesh_path + mesh
 
-    #prepare_material
-    color_index = colors_values.index(robot_parts[counter]["color"])
-    if first_time_color_definition[color_index] == 0:
-        first_time_color_definition[color_index] = 1
-        Mat1 = materials[color_index]
-    else:
-        Mat1 = Material(name = colors_names[color_index] )
+        #prepare_material
+        color_index = colors_values.index(robot_parts[counter]["color"])
+        if first_time_color_definition[color_index] == 0:
+            first_time_color_definition[color_index] = 1
+            Mat1 = materials[color_index]
+        else:
+            Mat1 = Material(name = colors_names[color_index] )
 
-    tf = part["location"]
+        tf = part["location"]
 
-    #translation = changePos2M(tf)
-    translation  = changePos2M(root_location_in_step.Inverted())# [0,0,0]
-    #or_part = toEuler(tf)
-    or_part = toEuler(root_location_in_step.Inverted())#0,0,0]
+        #translation = changePos2M(tf)
+        translation  = changePos2M(root_location_in_step.Inverted())# [0,0,0]
+        #or_part = toEuler(tf)
+        or_part = toEuler(root_location_in_step.Inverted())#0,0,0]
 
-    Pos1 = Pose(xyz=translation,rpy=or_part)#'zyx'
-            
-    Vis1 = Visual(geometry=Mesh(filename= meshpath),material=Mat1, origin=Pos1, name=None)
-
-
-    urdf_link.add_aggregate('visual', Vis1)
-    counter = counter + 1
+        Pos1 = Pose(xyz=translation,rpy=or_part)#'zyx'
+                
+        Vis1 = Visual(geometry=Mesh(filename= meshpath),material=Mat1, origin=Pos1, name=None)
 
 
+        urdf_link.add_aggregate('visual', Vis1)
+        counter = counter + 1
 
-robot.add_link(urdf_link)
-robot.materials
+
+
+    robot.add_link(urdf_link)
+
 #SAVE URDF
 
 
