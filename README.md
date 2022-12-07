@@ -1,10 +1,9 @@
 # urdf_creator
-Naredi URDF iz skelete
 
 
+![alt text](http://url/to/img.png)
 
-mogoče? : conda install -c dlr-sc pythonocc-core=7.4.0
+The main objective of our work is to realize a versatile and automated conversion of CAD models to URDF format. The automation must be suitable for most CAD programs used for geometric data generation and it must not significantly limit the designer by the required CAD model tree structure. In order to be able to use any CAD software for generating or modifying geometric data, we have chosen the Standard for the Exchange of Product Data (STEP) format as the input format for our automation process. STEP format is widely used and is supported by all CAD programs. It can represent 3D objects and the related information. Due to its ASCII structure, it is human readable. In our development process, we used the Fusion 360 CAD program for STEP file creation, but any of the standard CAD programs could be used instead.
 
-gazebo --verbose -s libgazebo_ros_factory.so
-ros2 run gazebo_ros spawn_entity.py -entity myentity3 -x 10 -y 10 -z 10 -file robot.xml
 
+We developed ROS Python packages to automate the transformation from the STEP format into the URDF format. The program takes as input the STEP file of the desired hardware element and creates a new ROS package. The package created contains the URDF description, the STL mesh files required by URDF description, and the ROS launch file to load the data into the ROS control system. The URDF file is generated in the following steps. First, the STEP file is loaded and its contents are analyzed using tools from the Open Cascade Technology (OCCT) library. The analysis looks for keywords such as "joint" and "link" in the part names or in the assembly names in the model design tree. The instances with these keywords in their names represent the corresponding "joint" and "link" building blocks of URDF.  The remaining part names containing the keyword encode the connections between individual URDF elements and their names in the URDF file. Once these instances and their connections have been identified, the correct local transformation between them must be computed from the values of their base coordinate systems in the STEP file. The calculated local transformations are transformed accordingly into the coordinate system values of the "joint" and "link" URDF definitions. The instances that do not have keywords in their names represent geometric shapes. They are transformed into the STL mesh specified in the appropriate local coordinate system according to the given URDF tree structure. From the collected and computed URDF data, the XML in URDF format is created using the urdfdom parser library. Finally, everything is stored in a newly created ROS package.
