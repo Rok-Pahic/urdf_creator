@@ -35,7 +35,7 @@ Since the joint and link definitions are connected in the original CAD model, an
 
 
 
-![alt text](./documentation/giljotina1.png)![alt text](./documentation/giljotina2.png)![alt text](./documentation/giljotina3.png)
+![alt text](./documentation/gilotina1.png)![alt text](./documentation/gilotina2.png)![alt text](./documentation/gilotina3.png)
 
 *Geometric shapes are grouped in the links, which allows the shapes to follow the motion defined by the joint values. In the above images, the cutter head moves according to the prismatic joint value defined by the slider.*
 
