@@ -4,7 +4,7 @@ services:
   occ1:
     image: occ:latest
     volumes:
-      - /home/rok/Documents/urdf_rospackages/src:/ros_ws/src
+      - /media/rok/Data4/urdf_dev_ws/src:/ros_ws/src
       - /home/rok/Documents/urdf_creator:/scripts_occ
     #command: stdbuf -o L /bin/bash
     network_mode: "host"

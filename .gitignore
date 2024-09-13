@@ -7,3 +7,5 @@ robot_test.xml
 *.stl
 *.stp
 *.urdf
+
+__pycache__/*

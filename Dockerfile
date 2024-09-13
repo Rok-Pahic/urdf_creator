@@ -80,10 +80,13 @@ RUN pip install catkin_tools
 
 RUN set -ex; \
     apt update && apt install -y \
-    ros-noetic-urdfdom-py
+    ros-noetic-urdfdom-py \
+    ros-noetic-tf
 
 
 WORKDIR /ros_ws/src
+
+
 
 WORKDIR /ros_ws
 
